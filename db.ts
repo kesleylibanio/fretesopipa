@@ -41,25 +41,35 @@ export const generateId = () => {
   }
 };
 
-const mapToSheet = (data: any[], type: string) => {
+const mapToSheet = (data: any[], type: string, db?: DB) => {
   if (!data || !Array.isArray(data)) return [];
 
   if (type === 'trips') {
-    return data.map((t: Trip) => ({
-      id: String(t.id),
-      data: t.date,
-      nota_fiscal: String(t.invoiceNumber),
-      cliente_id: String(t.customerId),
-      motorista_id: String(t.driverId),
-      veiculo_id: String(t.vehicleId),
-      local_carregamento_id: String(t.originId),
-      local_descarga_id: String(t.destinationId),
-      material_id: String(t.materialId),
-      quantidade_toneladas: Number(t.qtyTons),
-      valor_tonelada: Number(t.pricePerTon),
-      valor_total: Number(t.totalValue),
-      foto_nota: t.invoiceImageUrl || ''
-    }));
+    return data.map((t: Trip) => {
+      // Tenta encontrar o nome real baseado no ID para salvar na planilha de forma legível
+      const customerName = db?.customers.find(c => c.id === t.customerId)?.name || t.customerId;
+      const driverName = db?.drivers.find(d => d.id === t.driverId)?.name || t.driverId;
+      const vehiclePlate = db?.vehicles.find(v => v.id === t.vehicleId)?.plate || t.vehicleId;
+      const originName = db?.locations.find(l => l.id === t.originId)?.name || t.originId;
+      const destName = db?.locations.find(l => l.id === t.destinationId)?.name || t.destinationId;
+      const materialName = db?.materials.find(m => m.id === t.materialId)?.name || t.materialId;
+
+      return {
+        id: String(t.id),
+        data: t.date,
+        nota_fiscal: String(t.invoiceNumber),
+        cliente_id: String(customerName),
+        motorista_id: String(driverName),
+        veiculo_id: String(vehiclePlate),
+        local_carregamento_id: String(originName),
+        local_descarga_id: String(destName),
+        material_id: String(materialName),
+        quantidade_toneladas: Number(t.qtyTons),
+        valor_tonelada: Number(t.pricePerTon),
+        valor_total: Number(t.totalValue),
+        foto_nota: t.invoiceImageUrl || ''
+      };
+    });
   }
   if (type === 'logins') {
     return data.map((l: Login) => ({
@@ -70,12 +80,17 @@ const mapToSheet = (data: any[], type: string) => {
     }));
   }
   if (type === 'freightRates') {
-    return data.map((f: FreightRate) => ({
-      id: String(f.id),
-      local_origem_id: String(f.originId),
-      local_destino_id: String(f.destinationId),
-      valor_tonelada: Number(f.pricePerTon)
-    }));
+    return data.map((f: FreightRate) => {
+      const originName = db?.locations.find(l => l.id === f.originId)?.name || f.originId;
+      const destName = db?.locations.find(l => l.id === f.destinationId)?.name || f.destinationId;
+      
+      return {
+        id: String(f.id),
+        local_origem_id: String(originName),
+        local_destino_id: String(destName),
+        valor_tonelada: Number(f.pricePerTon)
+      };
+    });
   }
   if (type === 'vehicles') {
     return data.map((v: Vehicle) => ({ id: String(v.id), placa: String(v.plate) }));
@@ -175,14 +190,14 @@ export const pushDB = async (db: DB): Promise<boolean> => {
   try {
     const payload = {
       token: SECURITY_TOKEN,
-      Viagens: mapToSheet(db.trips, 'trips'),
-      Clientes: mapToSheet(db.customers, 'customers'),
-      Motoristas: mapToSheet(db.drivers, 'drivers'),
-      Veiculos: mapToSheet(db.vehicles, 'vehicles'),
-      Locais: mapToSheet(db.locations, 'locations'),
-      Materiais: mapToSheet(db.materials, 'materials'),
-      Fretes: mapToSheet(db.freightRates, 'freightRates'),
-      Logins: mapToSheet(db.logins, 'logins')
+      Viagens: mapToSheet(db.trips, 'trips', db),
+      Clientes: mapToSheet(db.customers, 'customers', db),
+      Motoristas: mapToSheet(db.drivers, 'drivers', db),
+      Veiculos: mapToSheet(db.vehicles, 'vehicles', db),
+      Locais: mapToSheet(db.locations, 'locations', db),
+      Materiais: mapToSheet(db.materials, 'materials', db),
+      Fretes: mapToSheet(db.freightRates, 'freightRates', db),
+      Logins: mapToSheet(db.logins, 'logins', db)
     };
     
     const response = await fetch(API_URL, {

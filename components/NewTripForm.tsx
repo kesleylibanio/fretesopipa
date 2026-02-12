@@ -35,7 +35,7 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
   const [extractedData, setExtractedData] = useState<any>(null);
   const [showFullImage, setShowFullImage] = useState(false);
   const [isCompressing, setIsCompressing] = useState(false);
-  const [needsKeySelection, setNeedsKeySelection] = useState(false);
+  const [showAnexadoSuccess, setShowAnexadoSuccess] = useState(false);
   
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -120,7 +120,8 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
       streamRef.current = stream;
       setIsCameraActive(true);
     } catch (err) {
-      alert("Não foi possível acessar a câmera. Verifique as permissões.");
+      // Falha silenciosa ou log
+      console.error("Câmera inacessível", err);
     }
   };
 
@@ -165,33 +166,18 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
     };
   };
 
-  const handleManualReauth = async () => {
-    if (window.aistudio) {
-      await (window.aistudio as any).openSelectKey();
-      setNeedsKeySelection(false);
-    }
-  };
-
   const processImageBase64 = async (base64Data: string, mimeType: string, fullUrl: string) => {
     setIsScanning(true);
     setFormData(prev => ({ ...prev, invoiceImageUrl: fullUrl }));
 
     try {
-      // Verifica se a chave de API está selecionada (específico para deploy)
-      if (window.aistudio) {
-        const hasKey = await (window.aistudio as any).hasSelectedApiKey();
-        if (!hasKey) {
-          await (window.aistudio as any).openSelectKey();
-        }
-      }
-
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
         contents: {
           parts: [
             { inlineData: { data: base64Data, mimeType: mimeType } },
-            { text: "Você é um especialista em logística. Extraia da imagem desta Nota Fiscal (DANFE) apenas: data_emissao (formato YYYY-MM-DD), numero_nota (apenas dígitos), peso_liquido_toneladas (número decimal). Retorne exclusivamente um JSON puro." }
+            { text: "Extraia da imagem desta Nota Fiscal: data_emissao (YYYY-MM-DD), numero_nota (digitos), peso_liquido_toneladas (decimal). Retorne apenas JSON puro." }
           ]
         },
         config: { 
@@ -201,20 +187,16 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
       });
 
       const text = response.text;
-      if (!text) throw new Error("Resposta vazia da IA");
+      if (!text) throw new Error("Vazio");
       
       const result = JSON.parse(text);
       setExtractedData(result);
       setShowConfirmModal(true);
     } catch (error: any) {
-      console.error("Erro na extração IA:", error);
-      
-      // Se o erro for de entidade não encontrada ou permissão, sinaliza necessidade de chave
-      if (error.message?.includes("Requested entity was not found") || error.message?.includes("404") || error.message?.includes("403")) {
-        setNeedsKeySelection(true);
-      }
-      
-      alert("A IA encontrou uma instabilidade ao ler a nota. Verifique se a chave de API está ativa no menu de configurações ou preencha os dados manualmente.");
+      console.error("Falha IA, mantendo apenas imagem:", error);
+      // Notifica sucesso ao anexar imagem mesmo se a IA falhar
+      setShowAnexadoSuccess(true);
+      setTimeout(() => setShowAnexadoSuccess(false), 3000);
     } finally {
       setIsScanning(false);
     }
@@ -230,6 +212,9 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
       }));
     }
     setShowConfirmModal(false);
+    // Também mostra sucesso ao confirmar dados extraídos
+    setShowAnexadoSuccess(true);
+    setTimeout(() => setShowAnexadoSuccess(false), 3000);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -253,6 +238,15 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 animate-in slide-in-from-bottom-4 duration-500 pb-20">
+      
+      {/* Toast de Sucesso ao Anexar */}
+      {showAnexadoSuccess && (
+        <div className="fixed top-24 left-1/2 -translate-x-1/2 z-[250] bg-emerald-600 text-white px-8 py-4 rounded-2xl shadow-2xl flex items-center space-x-3 border border-emerald-400 animate-in slide-in-from-top-8">
+          <CheckCircle2 size={24} />
+          <span className="font-black uppercase tracking-widest text-sm">Imagem anexada com sucesso!</span>
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-black text-slate-900 tracking-tight">
           {initialData ? 'Editar Lançamento' : 'Novo Lançamento'}
@@ -261,12 +255,6 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
           <input type="file" ref={fileInputRef} onChange={onFileChange} accept="image/*" className="hidden" />
           {!initialData && (
             <div className="flex space-x-2">
-              {needsKeySelection && (
-                <button type="button" onClick={handleManualReauth} className="flex items-center space-x-2 bg-amber-100 text-amber-700 px-4 py-2 rounded-xl font-black text-xs uppercase tracking-widest animate-bounce">
-                  <AlertCircle size={16} />
-                  <span>Configurar IA</span>
-                </button>
-              )}
               <button type="button" onClick={() => fileInputRef.current?.click()} className="flex items-center space-x-2 bg-slate-800 text-white px-4 py-2 rounded-xl font-bold hover:bg-slate-700 transition-all active:scale-95">
                 <ImageIcon size={20} />
                 <span className="hidden sm:inline">Galeria</span>
@@ -299,7 +287,7 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
                   </div>
                 </div>
                 <div className="absolute top-2 right-2 bg-emerald-500 text-white p-1 rounded-full shadow-lg"><CheckCircle2 size={16} /></div>
-                <p className="text-[10px] font-black text-slate-400 uppercase mt-2 tracking-widest text-center">Imagem Processada ✓</p>
+                <p className="text-[10px] font-black text-slate-400 uppercase mt-2 tracking-widest text-center">Imagem Pronta ✓</p>
               </div>
             )}
             

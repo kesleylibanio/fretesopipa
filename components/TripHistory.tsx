@@ -32,14 +32,17 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
     const locations = db?.locations || [];
 
     return trips.filter((trip: Trip) => {
-      // Motorista só vê suas próprias viagens
-      if (!isAdmin && trip.driverId !== user.driverId) return false;
+      // Motorista só vê suas próprias viagens. 
+      // Suporte para comparação por ID (UUID) ou Nome Direto
+      if (!isAdmin) {
+        if (trip.driverId !== user.driverId && trip.driverId !== user.username) return false;
+      }
 
-      const customer = customers.find((c: any) => c.id === trip.customerId)?.name || '';
-      const driver = drivers.find((d: any) => d.id === trip.driverId)?.name || '';
-      const vehicle = vehicles.find((v: any) => v.id === trip.vehicleId)?.plate || '';
-      const origin = locations.find((l: any) => l.id === trip.originId)?.name || '';
-      const dest = locations.find((l: any) => l.id === trip.destinationId)?.name || '';
+      const customer = customers.find((c: any) => c.id === trip.customerId)?.name || trip.customerId || '';
+      const driver = drivers.find((d: any) => d.id === trip.driverId)?.name || trip.driverId || '';
+      const vehicle = vehicles.find((v: any) => v.id === trip.vehicleId)?.plate || trip.vehicleId || '';
+      const origin = locations.find((l: any) => l.id === trip.originId)?.name || trip.originId || '';
+      const dest = locations.find((l: any) => l.id === trip.destinationId)?.name || trip.destinationId || '';
 
       const matchesSearch = [
         trip.invoiceNumber || '',
@@ -48,7 +51,7 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
         vehicle,
         origin,
         dest
-      ].some(val => val.toLowerCase().includes(searchTerm.toLowerCase()));
+      ].some(val => String(val).toLowerCase().includes(searchTerm.toLowerCase()));
 
       const matchesFilters = 
         (!filter.date || trip.date === filter.date) &&
@@ -153,11 +156,11 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {filteredTrips.map((trip: Trip) => {
-                  const customer = (db?.customers || []).find((c: any) => c.id === trip.customerId);
-                  const driver = (db?.drivers || []).find((d: any) => d.id === trip.driverId);
-                  const vehicle = (db?.vehicles || []).find((v: any) => v.id === trip.vehicleId);
-                  const origin = (db?.locations || []).find((l: any) => l.id === trip.originId);
-                  const dest = (db?.locations || []).find((l: any) => l.id === trip.destinationId);
+                  const customerName = (db?.customers || []).find((c: any) => c.id === trip.customerId)?.name || trip.customerId;
+                  const driverName = (db?.drivers || []).find((d: any) => d.id === trip.driverId)?.name || trip.driverId;
+                  const vehiclePlate = (db?.vehicles || []).find((v: any) => v.id === trip.vehicleId)?.plate || trip.vehicleId;
+                  const originName = (db?.locations || []).find((l: any) => l.id === trip.originId)?.name || trip.originId;
+                  const destName = (db?.locations || []).find((l: any) => l.id === trip.destinationId)?.name || trip.destinationId;
 
                   return (
                     <tr key={trip.id} className="hover:bg-red-50/30 transition-colors group">
@@ -180,18 +183,18 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
-                          <span className="font-black text-slate-800 tracking-tight">{customer?.name}</span>
-                          <span className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{driver?.name}</span>
+                          <span className="font-black text-slate-800 tracking-tight">{customerName}</span>
+                          <span className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{driverName}</span>
                         </div>
                       </td>
                       <td className="px-8 py-6">
                         <div className="flex flex-col">
                           <div className="flex items-center text-[10px] font-black text-slate-500 uppercase space-x-2">
-                            <span>{origin?.name}</span>
+                            <span>{originName}</span>
                             <span className="text-red-300">→</span>
-                            <span>{dest?.name}</span>
+                            <span>{destName}</span>
                           </div>
-                          <span className="text-sm font-black text-red-600 mt-1">{vehicle?.plate}</span>
+                          <span className="text-sm font-black text-red-600 mt-1">{vehiclePlate}</span>
                         </div>
                       </td>
                       <td className="px-8 py-6 text-right">

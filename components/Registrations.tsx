@@ -42,6 +42,7 @@ const Registrations: React.FC<RegistrationsProps> = ({ db, setDb }) => {
   };
 
   const findDriverLogin = (driverId: string, driverName: string) => {
+    // Busca primeiro pelo ID exato, se não encontrar tenta pelo nome normalizado
     let login = db.logins.find((l: Login) => l.id === driverId);
     if (login) return login;
 
@@ -56,13 +57,23 @@ const Registrations: React.FC<RegistrationsProps> = ({ db, setDb }) => {
     e.preventDefault();
     if (!newName.trim()) return;
 
-    const sharedId = generateId();
-    const field = activeTab === 'vehicles' ? 'plate' : 'name';
     const cleanName = newName.trim();
+    // Usamos o próprio nome/placa como ID para facilitar a leitura na planilha
+    const sharedId = cleanName;
+    const field = activeTab === 'vehicles' ? 'plate' : 'name';
+    
     const newItem = { id: sharedId, [field]: cleanName };
     
     const success = await setDb(prev => {
       const next = { ...prev };
+      
+      // Verifica se já existe
+      const alreadyExists = prev[activeTab].some((item: any) => (item.id === sharedId));
+      if (alreadyExists) {
+        alert("Este registro já existe.");
+        return prev;
+      }
+
       next[activeTab] = [...prev[activeTab], newItem];
       
       if (activeTab === 'drivers') {
@@ -115,15 +126,11 @@ const Registrations: React.FC<RegistrationsProps> = ({ db, setDb }) => {
   const handleDelete = async (id: string) => {
     if (!confirm('Deseja excluir este registro PERMANENTEMENTE da planilha?')) return;
     
-    // Dispara a atualização global. O App cuidará de enviar a lista sem o item para a nuvem.
     await setDb(prev => {
       const next = { ...prev };
-      
-      // Remove o item da lista específica da aba ativa
       const currentList = prev[activeTab] || [];
       next[activeTab] = currentList.filter((item: any) => item.id !== id);
       
-      // Se for motorista, removemos o login dele também
       if (activeTab === 'drivers') {
         next.logins = (prev.logins || []).filter((l: Login) => {
           if (l.role === 'admin') return true;
@@ -231,7 +238,7 @@ const Registrations: React.FC<RegistrationsProps> = ({ db, setDb }) => {
                             <div className="flex items-center space-x-3 mt-1">
                               <div className="flex items-center space-x-1 text-[10px] font-black uppercase text-slate-400 tracking-tighter"><KeyRound size={12} className="text-red-400" /><span>Acesso: <span className="text-slate-900">{driverLogin?.username || 'Pendente'}</span></span></div>
                               <div className="w-1 h-1 rounded-full bg-slate-200"></div>
-                              <div className="flex items-center space-x-1 text-[10px] font-black uppercase text-slate-400 tracking-tighter"><ShieldCheck size={12} className="text-emerald-500" /><span>ID Link: <span className="text-slate-900">{item.id.substring(0,8)}...</span></span></div>
+                              <div className="flex items-center space-x-1 text-[10px] font-black uppercase text-slate-400 tracking-tighter"><ShieldCheck size={12} className="text-emerald-500" /><span>ID: <span className="text-slate-900">{String(item.id).substring(0,10)}...</span></span></div>
                             </div>
                           )}
                         </div>
