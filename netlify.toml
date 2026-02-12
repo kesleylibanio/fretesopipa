@@ -11,6 +11,7 @@
   [headers.values]
     Content-Type = "application/javascript"
 
+# Redirecionamento SPA: apenas se o arquivo real não existir
 [[redirects]]
   from = "/*"
   to = "/index.html"
