@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Truck, 
@@ -18,13 +19,13 @@ import {
   ShieldCheck,
   Loader2
 } from 'lucide-react';
-import { ViewState, Trip, UserSession } from './types.ts';
-import { fetchDB, pushDB, INITIAL_DB, DB } from './db.ts';
-import Dashboard from './components/Dashboard.tsx';
-import NewTripForm from './components/NewTripForm.tsx';
-import TripHistory from './components/TripHistory.tsx';
-import Registrations from './components/Registrations.tsx';
-import FreightTable from './components/FreightTable.tsx';
+import { ViewState, Trip, UserSession } from './types';
+import { fetchDB, pushDB, INITIAL_DB, DB } from './db';
+import Dashboard from './components/Dashboard';
+import NewTripForm from './components/NewTripForm';
+import TripHistory from './components/TripHistory';
+import Registrations from './components/Registrations';
+import FreightTable from './components/FreightTable';
 
 const App: React.FC = () => {
   const [session, setSession] = useState<UserSession | null>(null);
