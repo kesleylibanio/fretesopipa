@@ -1,26 +1,38 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>LogiTrans - Gestão de Fretes</title>
+    
+    <!-- Babel para transpilação no browser -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Shim para process.env (Necessário para o SDK do Gemini) -->
+    <script>
+      window.process = {
+        env: {
+          // O Netlify não injeta variáveis de ambiente em arquivos estáticos automaticamente.
+          // Para que process.env.API_KEY funcione, ele precisa ser definido aqui.
+          // Em um pipeline de build real, isso seria substituído pelo valor real.
+          API_KEY: "" 
+        }
+      };
+    </script>
+
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Inter', sans-serif; }
-        /* Custom scrollbar */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Dark input appearance fixes and contrast */
         input, select, textarea {
           color-scheme: dark;
         }
         
-        /* Custom dropdown arrow for black background selects */
         select.dark-select {
           background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
           background-position: right 0.75rem center;
@@ -48,6 +60,7 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
-    <script type="module" src="index.tsx"></script>
+    <!-- Carregamento via Babel com suporte a módulos e TSX -->
+    <script type="text/babel" data-type="module" data-presets="react,typescript" src="index.tsx"></script>
 </body>
 </html>
