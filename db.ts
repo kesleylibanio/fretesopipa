@@ -3,11 +3,9 @@ import {
   Customer, Driver, Vehicle, Location, Material, FreightRate, Trip, Login 
 } from './types';
 
-// URL da API do Google Apps Script
 const API_URL = 'https://script.google.com/macros/s/AKfycbzk7E2yRlmtn2oz9GZWoLAsv2wCW47KKRkKA6OhGHUydzqhss_F39D9k9f7cpbxvpiJ/exec';
-
-// Token de Segurança (Deve ser igual no Apps Script)
 const SECURITY_TOKEN = 'LOGITRANS_SECRET_2025';
+const CACHE_KEY = 'fs_pipa_db_cache';
 
 export interface DB {
   customers: Customer[];
@@ -41,12 +39,34 @@ export const generateId = () => {
   }
 };
 
+// Salva no localStorage para carregamento rápido no próximo boot
+const saveToLocal = (db: DB) => {
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify({
+      data: db,
+      timestamp: Date.now()
+    }));
+  } catch (e) {
+    console.warn("Falha ao salvar cache local (provavelmente limite de espaço excedido)");
+  }
+};
+
+// Recupera do localStorage
+export const getLocalDB = (): DB | null => {
+  try {
+    const cached = localStorage.getItem(CACHE_KEY);
+    if (!cached) return null;
+    return JSON.parse(cached).data;
+  } catch (e) {
+    return null;
+  }
+};
+
 const mapToSheet = (data: any[], type: string, db?: DB) => {
   if (!data || !Array.isArray(data)) return [];
 
   if (type === 'trips') {
     return data.map((t: Trip) => {
-      // Tenta encontrar o nome real baseado no ID para salvar na planilha de forma legível
       const customerName = db?.customers.find(c => c.id === t.customerId)?.name || t.customerId;
       const driverName = db?.drivers.find(d => d.id === t.driverId)?.name || t.driverId;
       const vehiclePlate = db?.vehicles.find(v => v.id === t.vehicleId)?.plate || t.vehicleId;
@@ -83,7 +103,6 @@ const mapToSheet = (data: any[], type: string, db?: DB) => {
     return data.map((f: FreightRate) => {
       const originName = db?.locations.find(l => l.id === f.originId)?.name || f.originId;
       const destName = db?.locations.find(l => l.id === f.destinationId)?.name || f.destinationId;
-      
       return {
         id: String(f.id),
         local_origem_id: String(originName),
@@ -139,10 +158,7 @@ const mapFromSheet = (data: any[], type: string) => {
     }));
   }
   if (type === 'vehicles') {
-    return data.map((v: any) => ({ 
-      id: String(v.id || ''), 
-      plate: String(v.placa || '') 
-    }));
+    return data.map((v: any) => ({ id: String(v.id || ''), plate: String(v.placa || '') }));
   }
   return data.map(item => ({
     id: String(item.id || ''),
@@ -150,7 +166,7 @@ const mapFromSheet = (data: any[], type: string) => {
   }));
 };
 
-export const fetchDB = async (retries = 2): Promise<DB> => {
+export const fetchDB = async (retries = 1): Promise<DB> => {
   try {
     const url = `${API_URL}?token=${SECURITY_TOKEN}&action=read&_t=${Date.now()}`;
     const response = await fetch(url, {
@@ -159,17 +175,12 @@ export const fetchDB = async (retries = 2): Promise<DB> => {
       credentials: 'omit'
     });
     
-    if (!response.ok) {
-      throw new Error(`Erro na rede (Status: ${response.status}).`);
-    }
+    if (!response.ok) throw new Error(`Rede Offline`);
     
     const rawData = await response.json();
+    if (rawData.error) throw new Error(rawData.error);
     
-    if (rawData.error) {
-      throw new Error(`Erro do Servidor: ${rawData.error}`);
-    }
-    
-    return {
+    const db: DB = {
       customers: mapFromSheet(rawData.Clientes, 'customers') as Customer[],
       drivers: mapFromSheet(rawData.Motoristas, 'drivers') as Driver[],
       vehicles: mapFromSheet(rawData.Veiculos, 'vehicles') as Vehicle[],
@@ -180,13 +191,18 @@ export const fetchDB = async (retries = 2): Promise<DB> => {
       logins: mapFromSheet(rawData.Logins, 'logins') as Login[],
       recentIds: rawData.Metadata?.recentIds || {}
     };
+
+    saveToLocal(db);
+    return db;
   } catch (error: any) {
     if (retries > 0) return fetchDB(retries - 1);
-    throw new Error(error.message);
+    throw error;
   }
 };
 
 export const pushDB = async (db: DB): Promise<boolean> => {
+  saveToLocal(db); // Sempre atualiza local antes de tentar cloud
+  
   try {
     const payload = {
       token: SECURITY_TOKEN,
@@ -205,17 +221,14 @@ export const pushDB = async (db: DB): Promise<boolean> => {
       mode: 'cors',
       redirect: 'follow', 
       body: JSON.stringify(payload),
-      headers: { 
-        'Content-Type': 'text/plain;charset=utf-8' 
-      }
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }
     });
     
     if (!response.ok) return false;
-    
     const result = await response.text();
     return result.trim().toLowerCase().includes("success");
   } catch (error) {
-    console.error('Erro de sincronização:', error);
+    console.error('Erro sincronização:', error);
     return false;
   }
 };

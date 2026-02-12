@@ -20,7 +20,7 @@ import {
   Loader2
 } from 'lucide-react';
 import { ViewState, Trip, UserSession } from './types';
-import { fetchDB, pushDB, INITIAL_DB, DB } from './db';
+import { fetchDB, pushDB, INITIAL_DB, DB, getLocalDB } from './db';
 import Dashboard from './components/Dashboard';
 import NewTripForm from './components/NewTripForm';
 import TripHistory from './components/TripHistory';
@@ -36,10 +36,10 @@ const App: React.FC = () => {
   const [errorMessage, setErrorMessage] = useState('');
   
   const [view, setView] = useState<ViewState>('dashboard');
-  const [db, setDb] = useState<DB>(INITIAL_DB);
-  const dbRef = useRef<DB>(INITIAL_DB); 
+  const [db, setDb] = useState<DB>(() => getLocalDB() || INITIAL_DB);
+  const dbRef = useRef<DB>(db); 
   
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingLabel, setProcessingLabel] = useState('Processando...');
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -54,15 +54,18 @@ const App: React.FC = () => {
   }, [db]);
 
   const loadData = async () => {
-    setIsLoading(true);
+    // Sincronização em background se já houver dados locais
+    const hasLocal = db.trips.length > 0 || db.logins.length > 0;
+    if (!hasLocal) setIsLoading(true);
+    
     setLoadError(null);
     try {
       const data = await fetchDB();
       setDb(data);
       return data;
     } catch (error: any) {
-      console.error("Erro na carga inicial:", error);
-      setLoadError(error.message || "Erro de conexão com o banco de dados.");
+      console.warn("Erro sincronização cloud:", error);
+      if (!hasLocal) setLoadError("Não foi possível conectar. Tente novamente.");
       return null;
     } finally {
       setIsLoading(false);
@@ -89,17 +92,11 @@ const App: React.FC = () => {
   };
 
   const updateDB = async (updater: (prev: DB) => DB) => {
-    try {
-      const nextDb = updater(dbRef.current);
-      setDb(nextDb);
-      syncToCloud(nextDb).catch(err => {
-        console.error("Erro na sincronização de background:", err);
-      });
-      return true;
-    } catch (err: any) {
-      console.error("Erro ao preparar atualização local:", err);
-      return false;
-    }
+    const nextDb = updater(dbRef.current);
+    setDb(nextDb);
+    // Sincroniza em background, sem travar a UI
+    syncToCloud(nextDb);
+    return true;
   };
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -111,49 +108,50 @@ const App: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-    const currentDb = await loadData();
-    
+    // Carregamento rápido: Tenta usar os logins locais primeiro
     if (loginUsername.toLowerCase() === 'admin' && userPassword === '2025') {
       const adminSession: UserSession = { username: 'admin', role: 'admin' };
       setSession(adminSession);
       localStorage.setItem('fs_pipa_session', JSON.stringify(adminSession));
+      loadData();
       return;
     }
 
-    if (!currentDb) {
-      setIsLoading(false);
-      return;
-    }
+    const checkLogin = (currentDb: DB) => {
+      let foundLogin = currentDb.logins.find(l => l.username.toLowerCase() === loginUsername.toLowerCase());
+      if (foundLogin && String(foundLogin.password) === String(userPassword)) {
+        const driverEntry = currentDb.drivers.find(d => d.name.toLowerCase() === foundLogin?.username.toLowerCase());
+        const userSession: UserSession = { 
+          username: foundLogin.username, 
+          role: foundLogin.role,
+          driverId: driverEntry?.id
+        };
+        setSession(userSession);
+        localStorage.setItem('fs_pipa_session', JSON.stringify(userSession));
+        loadData();
+        return true;
+      }
+      return false;
+    };
 
-    let foundLogin = currentDb.logins.find(l => l.username.toLowerCase() === loginUsername.toLowerCase());
-    
-    if (foundLogin && String(foundLogin.password) === String(userPassword)) {
-      const driverEntry = currentDb.drivers.find(d => d.name.toLowerCase() === foundLogin?.username.toLowerCase());
-      
-      const userSession: UserSession = { 
-        username: foundLogin.username, 
-        role: foundLogin.role,
-        driverId: driverEntry?.id
-      };
-      setSession(userSession);
-      localStorage.setItem('fs_pipa_session', JSON.stringify(userSession));
-    } else {
-      setErrorMessage('Usuário ou Senha Pessoal incorretos.');
-      setLoginError(true);
-      setTimeout(() => { setLoginError(false); setErrorMessage(''); }, 2000);
-      setIsLoading(false);
-    }
+    if (checkLogin(db)) return;
+
+    // Se não achou local, força um fetch
+    setIsLoading(true);
+    const cloudDb = await loadData();
+    if (cloudDb && checkLogin(cloudDb)) return;
+
+    setErrorMessage('Usuário ou Senha incorretos.');
+    setLoginError(true);
+    setTimeout(() => { setLoginError(false); setErrorMessage(''); }, 2000);
+    setIsLoading(false);
   };
 
   useEffect(() => {
     const savedSession = localStorage.getItem('fs_pipa_session');
     if (savedSession) {
-      const parsedSession = JSON.parse(savedSession);
-      setSession(parsedSession);
-      loadData();
-    } else {
-      setIsLoading(false);
+      setSession(JSON.parse(savedSession));
+      loadData(); // Atualiza em background
     }
   }, []);
 
@@ -174,9 +172,7 @@ const App: React.FC = () => {
     setLoginUsername('');
     setUserPassword('');
     setPasscode('');
-    setLoadError(null);
     setView('dashboard');
-    setIsSidebarOpen(false);
   };
 
   const NavItem = ({ icon: Icon, label, target }: { icon: any, label: string, target: ViewState }) => (
@@ -195,12 +191,15 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col md:flex-row">
-      {isProcessing && (
-        <div className="fixed inset-0 z-[160] bg-slate-900/70 backdrop-blur-md flex flex-col items-center justify-center text-white space-y-4 animate-in fade-in duration-300">
-          <Loader2 size={64} className="text-red-500 animate-spin" />
+      {isLoading && (
+        <div className="fixed inset-0 z-[200] bg-slate-900/90 backdrop-blur-xl flex flex-col items-center justify-center text-white space-y-4">
+          <div className="relative">
+            <div className="w-20 h-20 border-4 border-red-500/20 border-t-red-500 rounded-full animate-spin"></div>
+            <Truck className="absolute inset-0 m-auto text-red-500 animate-pulse" size={32} />
+          </div>
           <div className="text-center">
-            <h2 className="text-2xl font-black uppercase tracking-widest mb-2">{processingLabel}</h2>
-            <p className="text-slate-400 font-bold text-sm">Aguarde um momento...</p>
+            <h2 className="text-xl font-black uppercase tracking-widest mb-1">Sincronizando</h2>
+            <p className="text-slate-400 font-bold text-xs">Preparando ambiente operacional...</p>
           </div>
         </div>
       )}
@@ -257,7 +256,7 @@ const App: React.FC = () => {
             {isSyncing && (
               <div className="bg-slate-900 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-white/10 animate-pulse">
                 <RefreshCw size={18} className="text-red-400 animate-spin" />
-                <span className="text-xs font-black uppercase tracking-widest">Sincronizando...</span>
+                <span className="text-xs font-black uppercase tracking-widest">Cloud Sync...</span>
               </div>
             )}
             {syncStatus === 'success' && (
@@ -270,8 +269,8 @@ const App: React.FC = () => {
               <div className="bg-red-600 text-white px-5 py-3 rounded-2xl shadow-2xl flex items-center space-x-3 border border-red-400 animate-in shake">
                 <AlertTriangle size={18} />
                 <div className="flex flex-col">
-                  <span className="text-xs font-black uppercase tracking-widest">Erro de Rede</span>
-                  <span className="text-[10px] opacity-80 uppercase tracking-tight">Tentaremos novamente</span>
+                  <span className="text-xs font-black uppercase tracking-widest">Offline</span>
+                  <span className="text-[10px] opacity-80 uppercase tracking-tight">Salvo Localmente</span>
                 </div>
               </div>
             )}
@@ -298,9 +297,9 @@ const App: React.FC = () => {
                 <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors mb-4"><X size={20} /><span className="font-bold text-xs uppercase tracking-widest">Sair do Sistema</span></button>
                 <div className="bg-slate-50 p-3 rounded-lg flex items-center space-x-3">
                   <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 uppercase">{session?.role === 'admin' ? 'ADM' : 'DRV'}</div>
-                  <div>
+                  <div className="overflow-hidden">
                     <p className="text-sm font-semibold text-slate-700 leading-none text-[10px] uppercase truncate max-w-[140px]">{session?.username}</p>
-                    <p className="text-[10px] font-bold mt-1 text-red-600 uppercase">Conexão Ativa</p>
+                    <p className="text-[10px] font-bold mt-1 text-red-600 uppercase">Sincronizado</p>
                   </div>
                 </div>
               </div>
