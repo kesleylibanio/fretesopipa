@@ -6,6 +6,7 @@ import {
   Settings, 
   Table as TableIcon, 
   Plus, 
+  Layers,
   Menu, 
   X, 
   BarChart3,
@@ -23,6 +24,7 @@ import { ViewState, Trip, UserSession } from './types';
 import { fetchDB, pushDB, INITIAL_DB, DB, getLocalDB } from './db';
 import Dashboard from './components/Dashboard';
 import NewTripForm from './components/NewTripForm';
+import BatchTripForm from './components/BatchTripForm';
 import TripHistory from './components/TripHistory';
 import Registrations from './components/Registrations';
 import FreightTable from './components/FreightTable';
@@ -48,6 +50,36 @@ const App: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [globalSearch, setGlobalSearch] = useState('');
   const [editingTrip, setEditingTrip] = useState<Trip | null>(null);
+
+  // Estados de rascunho para persistência entre navegação
+  const [draftTrip, setDraftTrip] = useState<any>({
+    date: new Date().toISOString().split('T')[0],
+    invoiceNumber: '',
+    customerId: '',
+    driverId: '',
+    vehicleId: '',
+    originId: '',
+    destinationId: '',
+    materialId: '',
+    qtyTons: 0,
+    pricePerTon: 0,
+    totalValue: 0,
+    invoiceImageUrl: ''
+  });
+
+  const [draftBatchFixed, setDraftBatchFixed] = useState<any>({
+    customerId: '',
+    driverId: '',
+    vehicleId: '',
+    originId: '',
+    destinationId: '',
+    materialId: '',
+    pricePerTon: 0
+  });
+
+  const [draftBatchItems, setDraftBatchItems] = useState<any[]>([
+    { id: Math.random().toString(), date: new Date().toISOString().split('T')[0], invoiceNumber: '', qtyTons: 0 }
+  ]);
 
   useEffect(() => {
     dbRef.current = db;
@@ -178,14 +210,14 @@ const App: React.FC = () => {
   const NavItem = ({ icon: Icon, label, target }: { icon: any, label: string, target: ViewState }) => (
     <button
       onClick={() => navigate(target)}
-      className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+      className={`w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl transition-all duration-200 ${
         view === target 
-          ? 'bg-red-600 text-white shadow-lg shadow-red-200' 
-          : 'text-slate-600 hover:bg-slate-100'
+          ? 'bg-red-600 text-white shadow-lg shadow-red-500/20 translate-x-1' 
+          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
       }`}
     >
-      <Icon size={20} />
-      <span className="font-medium">{label}</span>
+      <Icon size={22} />
+      <span className="font-bold text-sm tracking-tight">{label}</span>
     </button>
   );
 
@@ -276,30 +308,60 @@ const App: React.FC = () => {
             )}
           </div>
 
-          <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-            <div className="flex items-center space-x-2"><div className="bg-red-600 p-1.5 rounded-lg text-white"><Truck size={20} /></div><h1 className="font-bold text-lg text-slate-800">Fretes Só Pipa</h1></div>
+          <header className="md:hidden bg-white border-b px-6 py-4 flex items-center justify-between sticky top-0 z-50 shadow-sm">
+            <div className="flex items-center space-x-3">
+              <div className="bg-red-600 p-2 rounded-xl text-white shadow-lg shadow-red-500/20">
+                <Truck size={20} />
+              </div>
+              <h1 className="font-black text-xl text-slate-900 tracking-tighter">Fretes Só Pipa</h1>
+            </div>
             <div className="flex items-center space-x-2">
-              <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 text-slate-600">{isSidebarOpen ? <X size={24} /> : <Menu size={24} />}</button>
+              <button 
+                onClick={() => setIsSidebarOpen(!isSidebarOpen)} 
+                className="p-2.5 text-slate-600 bg-slate-50 rounded-xl active:scale-90 transition-transform"
+              >
+                {isSidebarOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
           </header>
 
-          <aside className={`fixed inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform duration-200 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
-            <div className="h-full flex flex-col p-4">
-              <div className="hidden md:flex items-center space-x-3 px-2 mb-8 mt-2"><div className="bg-red-600 p-2 rounded-xl text-white"><Truck size={24} /></div><h1 className="font-extrabold text-xl tracking-tight text-slate-800">Fretes Só Pipa</h1></div>
-              <nav className="flex-1 space-y-2">
+          <aside className={`fixed inset-y-0 left-0 z-40 w-72 bg-white border-r transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+            <div className="h-full flex flex-col p-6">
+              <div className="hidden md:flex items-center space-x-3 px-2 mb-10 mt-2">
+                <div className="bg-red-600 p-2.5 rounded-2xl text-white shadow-xl shadow-red-500/20">
+                  <Truck size={28} />
+                </div>
+                <h1 className="font-black text-2xl tracking-tighter text-slate-900">Fretes Só Pipa</h1>
+              </div>
+              
+              <nav className="flex-1 space-y-1.5">
                 <NavItem icon={BarChart3} label="Dashboard" target="dashboard" />
                 <NavItem icon={Plus} label="Nova Viagem" target="new_trip" />
+                {session?.role === 'admin' && <NavItem icon={Layers} label="Lançamento em Lote" target="batch_entry" />}
                 <NavItem icon={History} label="Histórico" target="history" />
                 {session?.role === 'admin' && <NavItem icon={Settings} label="Cadastros" target="registrations" />}
                 {session?.role === 'admin' && <NavItem icon={TableIcon} label="Tabela de Fretes" target="freight_table" />}
               </nav>
-              <div className="pt-4 border-t mt-auto">
-                <button onClick={logout} className="w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors mb-4"><X size={20} /><span className="font-bold text-xs uppercase tracking-widest">Sair do Sistema</span></button>
-                <div className="bg-slate-50 p-3 rounded-lg flex items-center space-x-3">
-                  <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center text-[10px] font-black text-red-600 uppercase">{session?.role === 'admin' ? 'ADM' : 'DRV'}</div>
-                  <div className="overflow-hidden">
-                    <p className="text-sm font-semibold text-slate-700 leading-none text-[10px] uppercase truncate max-w-[140px]">{session?.username}</p>
-                    <p className="text-[10px] font-bold mt-1 text-red-600 uppercase">Sincronizado</p>
+
+              <div className="pt-6 border-t mt-auto space-y-4">
+                <button 
+                  onClick={logout} 
+                  className="w-full flex items-center space-x-3 px-4 py-3.5 rounded-xl text-red-500 hover:bg-red-50 transition-all font-black text-[11px] uppercase tracking-[0.15em]"
+                >
+                  <X size={20} />
+                  <span>Sair do Sistema</span>
+                </button>
+                
+                <div className="bg-slate-50 p-4 rounded-2xl flex items-center space-x-3 border border-slate-100">
+                  <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-xs font-black text-white shadow-lg shadow-red-500/20">
+                    {session?.role === 'admin' ? 'ADM' : 'DRV'}
+                  </div>
+                  <div className="overflow-hidden flex-1">
+                    <p className="text-xs font-black text-slate-900 uppercase truncate tracking-tight">{session?.username}</p>
+                    <div className="flex items-center space-x-1 mt-0.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></div>
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Sincronizado</p>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -307,13 +369,15 @@ const App: React.FC = () => {
           </aside>
 
           <main className="flex-1 overflow-auto">
-            <div className="p-4 md:p-8 max-w-7xl mx-auto">
+            <div className="max-w-[1200px] mx-auto p-6">
               {view === 'dashboard' && <Dashboard navigate={navigate} db={db} onSearch={setGlobalSearch} user={session!} />}
               {view === 'new_trip' && (
                 <NewTripForm 
                   db={db} 
                   user={session!}
                   initialData={editingTrip || undefined}
+                  draftData={draftTrip}
+                  setDraftData={setDraftTrip}
                   onSave={async (savedTrip) => {
                     updateDB(prev => ({
                       ...prev,
@@ -322,9 +386,53 @@ const App: React.FC = () => {
                         : [savedTrip, ...prev.trips]
                     }));
                     setEditingTrip(null);
+                    setDraftTrip({
+                      date: new Date().toISOString().split('T')[0],
+                      invoiceNumber: '',
+                      customerId: '',
+                      driverId: '',
+                      vehicleId: '',
+                      originId: '',
+                      destinationId: '',
+                      materialId: '',
+                      qtyTons: 0,
+                      pricePerTon: 0,
+                      totalValue: 0,
+                      invoiceImageUrl: ''
+                    });
                     navigate('history');
                   }}
                   onCancel={() => { setEditingTrip(null); navigate('dashboard'); }}
+                />
+              )}
+              {view === 'batch_entry' && session?.role === 'admin' && (
+                <BatchTripForm 
+                  db={db} 
+                  user={session!}
+                  draftFixed={draftBatchFixed}
+                  setDraftFixed={setDraftBatchFixed}
+                  draftItems={draftBatchItems}
+                  setDraftItems={setDraftBatchItems}
+                  onSave={async (newTrips) => {
+                    updateDB(prev => ({
+                      ...prev,
+                      trips: [...newTrips, ...prev.trips]
+                    }));
+                    setDraftBatchFixed({
+                      customerId: '',
+                      driverId: '',
+                      vehicleId: '',
+                      originId: '',
+                      destinationId: '',
+                      materialId: '',
+                      pricePerTon: 0
+                    });
+                    setDraftBatchItems([
+                      { id: Math.random().toString(), date: new Date().toISOString().split('T')[0], invoiceNumber: '', qtyTons: 0 }
+                    ]);
+                    navigate('history');
+                  }}
+                  onCancel={() => navigate('dashboard')}
                 />
               )}
               {view === 'history' && (

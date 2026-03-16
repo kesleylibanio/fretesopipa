@@ -15,21 +15,40 @@
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         
-        /* Dark input appearance fixes and contrast */
-        input, select, textarea {
-          color-scheme: dark;
-        }
-        
-        /* Custom dropdown arrow for black background selects */
-        select.dark-select {
-          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+        /* Dropdown / Select styles */
+        select {
+          background-color: #ffffff !important;
+          color: #1f2937 !important;
+          border: 1px solid #e5e7eb !important;
+          appearance: none;
+          background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23334155' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
           background-position: right 0.75rem center;
           background-repeat: no-repeat;
           background-size: 1.5em 1.5em;
           padding-right: 2.5rem;
-          -webkit-appearance: none;
-          -moz-appearance: none;
-          appearance: none;
+        }
+        
+        option {
+          background-color: #ffffff;
+          color: #1f2937;
+          padding: 10px 12px;
+        }
+
+        option:hover, option:focus {
+          background-color: #f1f5f9 !important;
+          color: #111827 !important;
+        }
+
+        option:checked {
+          background-color: #e2e8f0 !important;
+          color: #111827 !important;
+          font-weight: 500;
+        }
+        
+        /* Ensure selects have a consistent height and vertical alignment */
+        select {
+          height: auto;
+          min-height: 3.5rem;
         }
     </style>
 <script type="importmap">
@@ -45,9 +64,11 @@
   }
 }
 </script>
+<link rel="stylesheet" href="/index.css">
 </head>
 <body class="bg-slate-50 text-slate-900">
     <div id="root"></div>
     <script type="module" src="index.tsx"></script>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>

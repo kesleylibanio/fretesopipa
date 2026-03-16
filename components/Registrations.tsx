@@ -168,84 +168,174 @@ const Registrations: React.FC<RegistrationsProps> = ({ db, setDb }) => {
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-6">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">Gestão de Cadastros</h2>
-          <p className="text-slate-500 text-sm font-medium">Controle de base operacional e acessos de motoristas.</p>
+          <h2 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tighter">Gestão de Cadastros</h2>
+          <p className="text-slate-500 mt-1 font-bold text-sm md:text-base">Controle de base operacional e acessos de motoristas.</p>
         </div>
         {activeTab === 'drivers' && (
-          <button onClick={resetAllLogins} className="flex items-center space-x-2 bg-slate-900 text-white px-5 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg active:scale-95">
-            <RefreshCcw size={14} /><span>Sincronizar IDs de Acesso</span>
+          <button onClick={resetAllLogins} className="flex items-center justify-center space-x-3 bg-slate-900 text-white px-6 py-4 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-red-600 transition-all shadow-xl shadow-slate-900/10 active:scale-95">
+            <RefreshCcw size={16} />
+            <span>Sincronizar Acessos</span>
           </button>
         )}
       </header>
 
-      <div className="flex overflow-x-auto pb-2 gap-2 scrollbar-hide">
+      <div className="flex overflow-x-auto pb-4 gap-3 scrollbar-hide -mx-2 px-2 w-full max-w-full">
         {tabs.map(tab => (
-          <button key={tab.id} onClick={() => { setActiveTab(tab.id as RegistrationType); setIsEditing(null); }} className={`flex items-center space-x-2 px-6 py-4 rounded-2xl font-black transition-all whitespace-nowrap uppercase text-[10px] tracking-widest ${activeTab === tab.id ? 'bg-red-600 text-white shadow-xl shadow-red-200 ring-4 ring-red-500/20' : 'bg-white text-slate-500 hover:bg-slate-50 border border-slate-100 shadow-sm'}`}>
-            <tab.icon size={16} /><span>{tab.label}</span>
+          <button 
+            key={tab.id} 
+            onClick={() => { setActiveTab(tab.id as RegistrationType); setIsEditing(null); }} 
+            className={`flex items-center space-x-3 px-6 py-4 rounded-2xl font-black transition-all whitespace-nowrap uppercase text-[11px] tracking-[0.15em] border-2 ${
+              activeTab === tab.id 
+                ? 'bg-red-600 text-white border-red-600 shadow-xl shadow-red-500/20' 
+                : 'bg-white text-slate-500 hover:bg-slate-50 border-slate-100 shadow-sm hover:border-slate-200'
+            }`}
+          >
+            <tab.icon size={18} />
+            <span>{tab.label}</span>
           </button>
         ))}
       </div>
 
-      <div className="bg-white rounded-[2rem] border border-slate-100 shadow-xl overflow-hidden">
-        <div className="p-8 border-b border-slate-50 bg-slate-50/30">
-          <form onSubmit={handleAdd} className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-3">
-              <div className="flex-1">
-                <input type="text" placeholder={activeTab === 'vehicles' ? 'Placa (ABC-1234)' : `Nome do ${currentTab.label.slice(0, -1)}...`} className="w-full px-5 py-4 rounded-2xl border border-slate-700 bg-slate-900 text-white placeholder-slate-400 focus:ring-4 focus:ring-red-500/20 outline-none shadow-inner font-bold" value={newName} onChange={e => setNewName(e.target.value)} />
+      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-2xl shadow-slate-200/50 overflow-hidden">
+        <div className="p-6 md:p-10 border-b border-slate-50 bg-slate-50/30">
+          <form onSubmit={handleAdd} className="space-y-6">
+            <div className="flex flex-col lg:flex-row gap-4 items-end">
+              <div className="w-full flex-1">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1.5 block">Informação Principal</label>
+                <input 
+                  type="text" 
+                  placeholder={activeTab === 'vehicles' ? 'Placa (ABC-1234)' : `Nome do ${currentTab.label.slice(0, -1)}...`} 
+                  className="w-full px-6 py-5 rounded-2xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none shadow-sm font-bold text-lg" 
+                  value={newName} 
+                  onChange={e => setNewName(e.target.value)} 
+                />
               </div>
               {activeTab === 'drivers' && (
                 <>
-                  <div className="md:w-48 relative"><User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} /><input type="text" placeholder="Usuário" className="w-full pl-11 pr-4 py-4 rounded-2xl border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:ring-4 focus:ring-red-500/20 outline-none shadow-inner font-bold" value={newUsername} onChange={e => setNewUsername(e.target.value)} /></div>
-                  <div className="md:w-48 relative"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500" size={18} /><input type="text" placeholder="Senha (123456)" className="w-full pl-11 pr-4 py-4 rounded-2xl border border-slate-700 bg-slate-900 text-white placeholder-slate-500 focus:ring-4 focus:ring-red-500/20 outline-none shadow-inner font-bold" value={newPassword} onChange={e => setNewPassword(e.target.value)} /></div>
+                  <div className="w-full lg:w-56">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1.5 block">Usuário</label>
+                    <div className="relative">
+                      <User className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                      <input 
+                        type="text" 
+                        placeholder="Usuário" 
+                        className="w-full pl-14 pr-6 py-5 rounded-2xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none shadow-sm font-bold text-lg" 
+                        value={newUsername} 
+                        onChange={e => setNewUsername(e.target.value)} 
+                      />
+                    </div>
+                  </div>
+                  <div className="w-full lg:w-56">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1.5 block">Senha</label>
+                    <div className="relative">
+                      <Lock className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                      <input 
+                        type="text" 
+                        placeholder="Senha" 
+                        className="w-full pl-14 pr-6 py-5 rounded-2xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 focus:ring-4 focus:ring-red-500/10 focus:border-red-500 outline-none shadow-sm font-bold text-lg" 
+                        value={newPassword} 
+                        onChange={e => setNewPassword(e.target.value)} 
+                      />
+                    </div>
+                  </div>
                 </>
               )}
-              <button type="submit" className="bg-red-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center space-x-2 shadow-lg shadow-red-200 active:scale-95 uppercase text-xs tracking-widest"><Plus size={20} /><span>Adicionar</span></button>
+              <div className="w-full lg:w-auto">
+                <button 
+                  type="submit" 
+                  className="w-full lg:w-auto bg-red-600 text-white px-10 py-5 rounded-2xl font-black hover:bg-red-700 transition-all flex items-center justify-center space-x-3 shadow-xl shadow-red-500/20 active:scale-95 uppercase text-sm tracking-widest"
+                >
+                  <Plus size={24} />
+                  <span>Adicionar</span>
+                </button>
+              </div>
             </div>
-            <div className="flex items-center space-x-4">
-              <div className="h-[1px] flex-1 bg-slate-200"></div>
-              <div className="relative"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={18} /><input type="text" placeholder="Filtrar lista..." className="pl-12 pr-6 py-2.5 rounded-full border border-slate-200 bg-white text-slate-600 placeholder-slate-400 focus:ring-4 focus:ring-slate-100 outline-none w-full md:w-80 shadow-sm text-sm font-medium" value={searchTerm} onChange={e => setSearchTerm(e.target.value)} /></div>
+            
+            <div className="flex flex-col sm:flex-row items-center gap-4 pt-2">
+              <div className="relative flex-1 w-full">
+                <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
+                <input 
+                  type="text" 
+                  placeholder="Filtrar lista..." 
+                  className="pl-14 pr-6 py-4 rounded-2xl border border-slate-200 bg-white text-slate-600 placeholder-slate-400 focus:ring-4 focus:ring-slate-100 outline-none w-full shadow-sm text-base font-bold" 
+                  value={searchTerm} 
+                  onChange={e => setSearchTerm(e.target.value)} 
+                />
+              </div>
+              <div className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] whitespace-nowrap">
+                {filteredItems.length} Registros
+              </div>
             </div>
           </form>
         </div>
 
-        <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto">
+        <div className="divide-y divide-slate-50 max-h-[600px] overflow-y-auto">
           {filteredItems.length === 0 ? (
-            <div className="p-20 text-center"><div className="bg-slate-50 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300"><currentTab.icon size={40} /></div><p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Lista vazia ou sem resultados</p></div>
+            <div className="py-32 text-center">
+              <div className="bg-slate-50 w-24 h-24 rounded-[2rem] flex items-center justify-center mx-auto mb-6 text-slate-200 shadow-inner">
+                <currentTab.icon size={48} />
+              </div>
+              <p className="text-slate-400 font-black uppercase text-xs tracking-[0.2em]">Lista vazia ou sem resultados</p>
+            </div>
           ) : (
             filteredItems.map((item: any) => {
               const driverLogin = activeTab === 'drivers' ? findDriverLogin(item.id, item.name) : null;
               return (
-                <div key={item.id} className="p-6 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50 transition-colors group">
+                <div key={item.id} className="p-6 md:p-8 flex flex-col md:flex-row md:items-center justify-between hover:bg-slate-50/50 transition-colors group gap-6">
                   {isEditing === item.id ? (
-                    <div className="flex-1 space-y-3">
-                      <div className="flex flex-col md:flex-row gap-2">
-                        <input autoFocus type="text" className="flex-1 px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white outline-none focus:ring-4 focus:ring-red-500/20 font-bold" value={editName} onChange={e => setEditName(e.target.value)} />
+                    <div className="flex-1 space-y-4 animate-in slide-in-from-left-2 duration-300">
+                      <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
+                        <input autoFocus type="text" className="px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 font-bold shadow-sm" value={editName} onChange={e => setEditName(e.target.value)} />
                         {activeTab === 'drivers' && (
-                          <><input type="text" className="md:w-48 px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white outline-none focus:ring-4 focus:ring-red-500/20 font-bold" value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="Usuário" /><input type="text" className="md:w-48 px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white outline-none focus:ring-4 focus:ring-red-500/20 font-bold" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="Nova Senha" /></>
+                          <>
+                            <input type="text" className="px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 font-bold shadow-sm" value={editUsername} onChange={e => setEditUsername(e.target.value)} placeholder="Usuário" />
+                            <input type="text" className="px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 outline-none focus:ring-4 focus:ring-red-500/10 focus:border-red-500 font-bold shadow-sm" value={editPassword} onChange={e => setEditPassword(e.target.value)} placeholder="Nova Senha" />
+                          </>
                         )}
-                        <div className="flex space-x-2"><button onClick={() => handleUpdate(item.id)} className="flex-1 md:flex-none p-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700"><Check size={20} className="mx-auto" /></button><button onClick={() => setIsEditing(null)} className="flex-1 md:flex-none p-3 bg-slate-200 text-slate-600 rounded-xl"><X size={20} className="mx-auto" /></button></div>
+                      </div>
+                      <div className="flex space-x-3">
+                        <button onClick={() => handleUpdate(item.id)} className="flex-1 bg-emerald-600 text-white py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-emerald-700 shadow-lg shadow-emerald-500/20 transition-all">Salvar Alterações</button>
+                        <button onClick={() => setIsEditing(null)} className="flex-1 bg-slate-200 text-slate-600 py-4 rounded-xl font-black uppercase text-xs tracking-widest hover:bg-slate-300 transition-all">Cancelar</button>
                       </div>
                     </div>
                   ) : (
                     <>
-                      <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 group-hover:border-red-100 group-hover:text-red-500 transition-all"><currentTab.icon size={24} /></div>
+                      <div className="flex items-center space-x-5">
+                        <div className="w-16 h-16 bg-white rounded-[1.5rem] flex items-center justify-center text-slate-400 shadow-sm border border-slate-100 group-hover:border-red-100 group-hover:text-red-500 group-hover:shadow-lg group-hover:shadow-red-500/5 transition-all duration-300">
+                          <currentTab.icon size={28} />
+                        </div>
                         <div>
-                          <span className="font-black text-slate-800 text-lg tracking-tight">{item.name || item.plate}</span>
+                          <span className="font-black text-slate-900 text-xl tracking-tighter block">{item.name || item.plate}</span>
                           {activeTab === 'drivers' && (
-                            <div className="flex items-center space-x-3 mt-1">
-                              <div className="flex items-center space-x-1 text-[10px] font-black uppercase text-slate-400 tracking-tighter"><KeyRound size={12} className="text-red-400" /><span>Acesso: <span className="text-slate-900">{driverLogin?.username || 'Pendente'}</span></span></div>
-                              <div className="w-1 h-1 rounded-full bg-slate-200"></div>
-                              <div className="flex items-center space-x-1 text-[10px] font-black uppercase text-slate-400 tracking-tighter"><ShieldCheck size={12} className="text-emerald-500" /><span>ID: <span className="text-slate-900">{String(item.id).substring(0,10)}...</span></span></div>
+                            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 mt-2">
+                              <div className="flex items-center space-x-2 text-[10px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1 rounded-full">
+                                <KeyRound size={12} className="text-red-500" />
+                                <span>Acesso: <span className="text-slate-900">{driverLogin?.username || 'Pendente'}</span></span>
+                              </div>
+                              <div className="flex items-center space-x-2 text-[10px] font-black uppercase text-slate-400 tracking-widest bg-slate-100 px-3 py-1 rounded-full">
+                                <ShieldCheck size={12} className="text-emerald-500" />
+                                <span>ID: <span className="text-slate-900 font-mono">{String(item.id).substring(0,8)}</span></span>
+                              </div>
                             </div>
                           )}
                         </div>
                       </div>
-                      <div className="flex space-x-2 mt-4 md:mt-0 opacity-100 md:opacity-0 group-hover:opacity-100 transition-all">
-                        <button onClick={() => { setIsEditing(item.id); setEditName(item.name || item.plate); setEditUsername(driverLogin?.username || ''); setEditPassword(driverLogin?.password || ''); }} className="flex-1 md:flex-none flex items-center space-x-2 bg-white px-4 py-2.5 rounded-xl border border-slate-200 text-slate-600 font-bold text-xs hover:border-red-600 hover:text-red-600 transition-all shadow-sm"><Edit2 size={14} /><span className="uppercase tracking-widest">Editar</span></button>
-                        <button onClick={() => handleDelete(item.id)} className="p-2.5 bg-white rounded-xl border border-slate-200 text-slate-400 hover:border-red-600 hover:text-red-600 transition-all shadow-sm"><Trash2 size={16} /></button>
+                      <div className="flex items-center space-x-3 self-end md:self-center">
+                        <button 
+                          onClick={() => { setIsEditing(item.id); setEditName(item.name || item.plate); setEditUsername(driverLogin?.username || ''); setEditPassword(driverLogin?.password || ''); }} 
+                          className="flex items-center space-x-2 bg-white px-6 py-3.5 rounded-2xl border border-slate-200 text-slate-600 font-black text-[10px] uppercase tracking-widest hover:border-red-600 hover:text-red-600 hover:shadow-lg transition-all"
+                        >
+                          <Edit2 size={16} />
+                          <span>Editar</span>
+                        </button>
+                        <button 
+                          onClick={() => handleDelete(item.id)} 
+                          className="p-3.5 bg-white rounded-2xl border border-slate-200 text-slate-300 hover:border-red-600 hover:text-red-600 hover:shadow-lg transition-all"
+                        >
+                          <Trash2 size={20} />
+                        </button>
                       </div>
                     </>
                   )}

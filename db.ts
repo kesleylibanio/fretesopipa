@@ -74,9 +74,16 @@ const mapToSheet = (data: any[], type: string, db?: DB) => {
       const destName = db?.locations.find(l => l.id === t.destinationId)?.name || t.destinationId;
       const materialName = db?.materials.find(m => m.id === t.materialId)?.name || t.materialId;
 
+      // Format date to DD/MM/YYYY for sheet
+      let formattedDate = t.date;
+      if (t.date && t.date.includes('-')) {
+        const [y, m, d] = t.date.split('-');
+        formattedDate = `${d}/${m}/${y}`;
+      }
+
       return {
         id: String(t.id),
-        data: t.date,
+        data: formattedDate,
         nota_fiscal: String(t.invoiceNumber),
         cliente_id: String(customerName),
         motorista_id: String(driverName),
@@ -124,10 +131,18 @@ const mapFromSheet = (data: any[], type: string) => {
   if (!data || !Array.isArray(data)) return [];
   
   if (type === 'trips') {
-    return data.map((t: any) => ({
-      id: String(t.id || ''),
-      date: t.data || '',
-      invoiceNumber: String(t.nota_fiscal || ''),
+    return data.map((t: any) => {
+      // Parse date from DD/MM/YYYY to YYYY-MM-DD for app
+      let parsedDate = String(t.data || '');
+      if (parsedDate && parsedDate.includes('/')) {
+        const [d, m, y] = parsedDate.split('/');
+        parsedDate = `${y}-${m}-${d}`;
+      }
+
+      return {
+        id: String(t.id || ''),
+        date: parsedDate,
+        invoiceNumber: String(t.nota_fiscal || ''),
       customerId: String(t.cliente_id || ''),
       driverId: String(t.motorista_id || ''),
       vehicleId: String(t.veiculo_id || ''),
@@ -139,7 +154,8 @@ const mapFromSheet = (data: any[], type: string) => {
       totalValue: Number(t.valor_total || 0),
       createdAt: Date.now(),
       invoiceImageUrl: String(t.foto_nota || '')
-    }));
+      };
+    });
   }
   if (type === 'logins') {
     return data.map((l: any) => ({

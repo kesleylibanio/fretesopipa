@@ -3,31 +3,27 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Save, X, Info, Calculator, Calendar, Truck, Camera, Sparkles, Loader2, CheckCircle2, Image as ImageIcon, RefreshCcw, Eye, Trash2, AlertCircle } from 'lucide-react';
 import { Trip, FreightRate, UserSession } from '../types';
 import { generateId } from '../db';
+import { SearchableSelect } from './SearchableSelect';
 import { GoogleGenAI } from "@google/genai";
 
 interface NewTripFormProps {
   db: any;
   user: UserSession;
   initialData?: Trip;
+  draftData: any;
+  setDraftData: (data: any) => void;
   onSave: (trip: Trip) => void;
   onCancel: () => void;
 }
 
-const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave, onCancel }) => {
-  const [formData, setFormData] = useState({
-    date: initialData?.date || new Date().toISOString().split('T')[0],
-    invoiceNumber: initialData?.invoiceNumber || '',
-    customerId: initialData?.customerId || '',
-    driverId: initialData?.driverId || (user.role === 'driver' ? user.driverId : ''),
-    vehicleId: initialData?.vehicleId || '',
-    originId: initialData?.originId || '',
-    destinationId: initialData?.destinationId || '',
-    materialId: initialData?.materialId || '',
-    qtyTons: initialData?.qtyTons || 0,
-    pricePerTon: initialData?.pricePerTon || 0,
-    totalValue: initialData?.totalValue || 0,
-    invoiceImageUrl: initialData?.invoiceImageUrl || ''
-  });
+const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, draftData, setDraftData, onSave, onCancel }) => {
+  const [formData, setFormData] = useState(initialData || draftData);
+
+  useEffect(() => {
+    if (!initialData) {
+      setDraftData(formData);
+    }
+  }, [formData, initialData, setDraftData]);
 
   const [isScanning, setIsScanning] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -232,8 +228,8 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
 
   const inputClass = (isSelect: boolean = false) => `
     w-full px-4 py-4 rounded-xl border outline-none transition-all
-    bg-slate-900 text-white placeholder-slate-400 font-bold text-base shadow-inner
-    ${isSelect ? 'dark-select' : ''} border-slate-700 focus:ring-4 focus:ring-red-500/20 focus:border-red-500
+    bg-white text-slate-900 placeholder-slate-400 font-bold text-base shadow-sm
+    ${isSelect ? 'dark-select' : ''} border-slate-200 focus:ring-4 focus:ring-red-500/20 focus:border-red-500
   `;
 
   return (
@@ -298,26 +294,33 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
 
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Cliente</label>
-              <select value={formData.customerId} onChange={e => setFormData(p => ({ ...p, customerId: e.target.value }))} className={inputClass(true)}>
-                <option value="" className="bg-slate-900">Selecionar Cliente</option>
-                {db.customers.map((c: any) => <option key={c.id} value={c.id} className="bg-slate-900">{c.name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.customerId}
+                onChange={val => setFormData(p => ({ ...p, customerId: val }))}
+                options={db.customers.map((c: any) => ({ id: c.id, label: c.name }))}
+                placeholder="Selecionar Cliente"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Motorista</label>
-              <select value={formData.driverId} onChange={e => isAdmin && setFormData(p => ({ ...p, driverId: e.target.value }))} disabled={!isAdmin} className={inputClass(true) + (!isAdmin ? " opacity-50" : "")}>
-                <option value="" className="bg-slate-900">Selecionar</option>
-                {db.drivers.map((d: any) => <option key={d.id} value={d.id} className="bg-slate-900">{d.name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.driverId}
+                onChange={val => isAdmin && setFormData(p => ({ ...p, driverId: val }))}
+                options={db.drivers.map((d: any) => ({ id: d.id, label: d.name }))}
+                disabled={!isAdmin}
+                placeholder="Selecionar"
+              />
             </div>
 
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Veículo</label>
-              <select value={formData.vehicleId} onChange={e => setFormData(p => ({ ...p, vehicleId: e.target.value }))} className={inputClass(true)}>
-                <option value="" className="bg-slate-900">Selecionar Placa</option>
-                {db.vehicles.map((v: any) => <option key={v.id} value={v.id} className="bg-slate-900">{v.plate}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.vehicleId}
+                onChange={val => setFormData(p => ({ ...p, vehicleId: val }))}
+                options={db.vehicles.map((v: any) => ({ id: v.id, label: v.plate }))}
+                placeholder="Selecionar Placa"
+              />
             </div>
           </div>
         </div>
@@ -326,35 +329,47 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
           <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-6">
             <h3 className="font-bold text-slate-800 flex items-center space-x-2 border-b border-slate-50 pb-3"><Truck size={18} className="text-red-500" /><span>Logística</span></h3>
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Origem</label><select value={formData.originId} onChange={e => setFormData(p => ({ ...p, originId: e.target.value }))} className={inputClass(true)}>
-                  <option value="" className="bg-slate-900">Local Carga</option>
-                  {db.locations.map((l: any) => <option key={l.id} value={l.id} className="bg-slate-900">{l.name}</option>)}
-                </select></div>
-              <div className="space-y-1.5"><label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Destino</label><select value={formData.destinationId} onChange={e => setFormData(p => ({ ...p, destinationId: e.target.value }))} className={inputClass(true)}>
-                  <option value="" className="bg-slate-900">Local Descarga</option>
-                  {db.locations.map((l: any) => <option key={l.id} value={l.id} className="bg-slate-900">{l.name}</option>)}
-                </select></div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Origem</label>
+                <SearchableSelect
+                  value={formData.originId}
+                  onChange={val => setFormData(p => ({ ...p, originId: val }))}
+                  options={db.locations.map((l: any) => ({ id: l.id, label: l.name }))}
+                  placeholder="Local Carga"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Destino</label>
+                <SearchableSelect
+                  value={formData.destinationId}
+                  onChange={val => setFormData(p => ({ ...p, destinationId: val }))}
+                  options={db.locations.map((l: any) => ({ id: l.id, label: l.name }))}
+                  placeholder="Local Descarga"
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Material</label>
-              <select value={formData.materialId} onChange={e => setFormData(p => ({ ...p, materialId: e.target.value }))} className={inputClass(true)}>
-                <option value="" className="bg-slate-900">Tipo Carga</option>
-                {db.materials.map((m: any) => <option key={m.id} value={m.id} className="bg-slate-900">{m.name}</option>)}
-              </select>
+              <SearchableSelect
+                value={formData.materialId}
+                onChange={val => setFormData(p => ({ ...p, materialId: val }))}
+                options={db.materials.map((m: any) => ({ id: m.id, label: m.name }))}
+                placeholder="Tipo Carga"
+              />
             </div>
           </div>
 
           <div className="bg-red-600 p-8 rounded-3xl shadow-2xl text-white space-y-6">
             <h3 className="font-black flex items-center space-x-2 border-b border-white/20 pb-3 uppercase tracking-tighter text-sm"><Calculator size={16} /><span>Faturamento</span></h3>
             <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 w-full max-w-[200px] mx-auto">
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-red-100">Quantidade (t)</label>
-                    <input type="number" step="0.01" value={formData.qtyTons || ''} onChange={e => setFormData(p => ({ ...p, qtyTons: Number(e.target.value) }))} className="w-full bg-slate-900 text-white border border-red-400/30 rounded-2xl px-4 py-4 outline-none font-black text-2xl text-center" placeholder="0.00" />
+                    <input type="number" step="0.01" value={formData.qtyTons || ''} onChange={e => setFormData(p => ({ ...p, qtyTons: Number(e.target.value) }))} className="w-full bg-white text-slate-900 border border-red-400/30 rounded-2xl px-4 py-4 outline-none font-black text-2xl text-center" placeholder="0.00" />
                 </div>
                 {isAdmin && (
-                   <div className="space-y-1.5">
+                   <div className="space-y-1.5 w-full max-w-[200px] mx-auto">
                     <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-red-100">Valor/Ton (R$)</label>
-                    <input type="number" step="0.01" value={formData.pricePerTon || ''} onChange={e => setFormData(p => ({ ...p, pricePerTon: Number(e.target.value) }))} className="w-full bg-slate-900 text-white border border-red-400/30 rounded-2xl px-4 py-4 outline-none font-black text-2xl text-center" placeholder="0.00" />
+                    <input type="number" step="0.01" value={formData.pricePerTon || ''} onChange={e => setFormData(p => ({ ...p, pricePerTon: Number(e.target.value) }))} className="w-full bg-white text-slate-900 border border-red-400/30 rounded-2xl px-4 py-4 outline-none font-black text-2xl text-center" placeholder="0.00" />
                    </div>
                 )}
             </div>
@@ -365,9 +380,9 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, onSave
           </div>
         </div>
 
-        <div className="md:col-span-2 flex items-center justify-end space-x-4 pt-6 mt-4 border-t border-slate-200">
-          <button type="button" onClick={onCancel} className="px-8 py-4 rounded-xl font-black text-slate-500 hover:text-red-600 uppercase text-xs tracking-widest">Descartar</button>
-          <button type="submit" disabled={isCompressing || isScanning} className="flex items-center justify-center space-x-3 bg-red-600 text-white px-14 py-5 rounded-2xl font-black hover:bg-red-700 transition-all shadow-xl shadow-red-200 active:scale-95 text-xl uppercase tracking-tighter disabled:opacity-50">
+        <div className="md:col-span-2 flex flex-col sm:flex-row items-center justify-center gap-4 pt-6 mt-4 border-t border-slate-200">
+          <button type="button" onClick={onCancel} className="w-full sm:w-auto px-8 py-4 rounded-xl font-black text-slate-500 hover:text-red-600 uppercase text-xs tracking-widest">Descartar</button>
+          <button type="submit" disabled={isCompressing || isScanning} className="w-full max-w-[420px] flex items-center justify-center space-x-3 bg-red-600 text-white px-14 py-5 rounded-2xl font-black hover:bg-red-700 transition-all shadow-xl shadow-red-200 active:scale-95 text-xl uppercase tracking-tighter disabled:opacity-50">
             {isCompressing ? <Loader2 className="animate-spin" /> : <Save size={24} />}
             <span>Confirmar Lançamento</span>
           </button>

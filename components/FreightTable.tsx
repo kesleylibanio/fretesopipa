@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Search, Plus, Trash2, MapPin, Calculator, AlertCircle } from 'lucide-react';
 import { FreightRate } from '../types';
 import { generateId } from '../db';
+import { SearchableSelect } from './SearchableSelect';
 
 interface FreightTableProps {
   db: any;
@@ -64,7 +65,7 @@ const FreightTable: React.FC<FreightTableProps> = ({ db, setDb }) => {
     return origin.toLowerCase().includes(term) || dest.toLowerCase().includes(term);
   });
 
-  const inputBaseClass = "w-full px-4 py-3 rounded-xl border border-slate-700 bg-slate-900 text-white placeholder-slate-400 outline-none focus:ring-2 focus:ring-red-500 transition-all shadow-inner";
+  const inputBaseClass = "w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-red-500 transition-all shadow-sm";
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500">
@@ -73,9 +74,9 @@ const FreightTable: React.FC<FreightTableProps> = ({ db, setDb }) => {
         <p className="text-slate-500 text-sm">Configure os valores padrões por rota (tonelada).</p>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-1">
-          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm sticky top-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        <div className="lg:col-span-1 w-full">
+          <div className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm sticky top-6 w-full">
             <h3 className="font-bold text-slate-800 mb-6 flex items-center space-x-2">
               <Plus size={20} className="text-red-600" />
               <span>Nova Rota</span>
@@ -84,25 +85,21 @@ const FreightTable: React.FC<FreightTableProps> = ({ db, setDb }) => {
             <form onSubmit={handleAdd} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Origem</label>
-                <select 
-                  className={inputBaseClass + " dark-select"}
+                <SearchableSelect
                   value={newRate.originId}
-                  onChange={e => setNewRate(prev => ({ ...prev, originId: e.target.value }))}
-                >
-                  <option value="" className="bg-slate-900">Selecione...</option>
-                  {db.locations.map((l: any) => <option key={l.id} value={l.id} className="bg-slate-900">{l.name}</option>)}
-                </select>
+                  onChange={val => setNewRate(prev => ({ ...prev, originId: val }))}
+                  options={db.locations.map((l: any) => ({ id: l.id, label: l.name }))}
+                  placeholder="Selecione..."
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Destino</label>
-                <select 
-                  className={inputBaseClass + " dark-select"}
+                <SearchableSelect
                   value={newRate.destinationId}
-                  onChange={e => setNewRate(prev => ({ ...prev, destinationId: e.target.value }))}
-                >
-                  <option value="" className="bg-slate-900">Selecione...</option>
-                  {db.locations.map((l: any) => <option key={l.id} value={l.id} className="bg-slate-900">{l.name}</option>)}
-                </select>
+                  onChange={val => setNewRate(prev => ({ ...prev, destinationId: val }))}
+                  options={db.locations.map((l: any) => ({ id: l.id, label: l.name }))}
+                  placeholder="Selecione..."
+                />
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-600 mb-1">Valor por Tonelada (R$)</label>
@@ -142,7 +139,7 @@ const FreightTable: React.FC<FreightTableProps> = ({ db, setDb }) => {
             <input 
               type="text" 
               placeholder="Pesquisar rotas..."
-              className="flex-1 px-4 py-2 bg-slate-900 text-white rounded-xl border border-slate-700 outline-none placeholder-slate-400 ml-4 shadow-inner"
+              className="flex-1 px-4 py-2 bg-white text-slate-900 rounded-xl border border-slate-200 outline-none placeholder-slate-400 ml-4 shadow-sm"
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
             />

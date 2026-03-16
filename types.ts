@@ -61,5 +61,5 @@ export interface UserSession {
   driverId?: string;
 }
 
-export type ViewState = 'dashboard' | 'new_trip' | 'history' | 'registrations' | 'freight_table';
+export type ViewState = 'dashboard' | 'new_trip' | 'batch_entry' | 'history' | 'registrations' | 'freight_table';
 export type RegistrationType = 'customers' | 'drivers' | 'vehicles' | 'locations' | 'materials';
