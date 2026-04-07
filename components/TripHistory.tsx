@@ -21,6 +21,7 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
     vehicleId: '',
     materialId: ''
   });
+  const [sortBy, setSortBy] = useState('date_desc');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
   const isAdmin = user.role === 'admin';
@@ -32,7 +33,7 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
     const vehicles = db?.vehicles || [];
     const locations = db?.locations || [];
 
-    return trips.filter((trip: Trip) => {
+    const filtered = trips.filter((trip: Trip) => {
       // Regra de Privacidade Crítica: Motorista só vê suas próprias viagens.
       if (!isAdmin) {
         const tripDriver = String(trip.driverId || '').trim().toLowerCase();
@@ -67,7 +68,23 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
 
       return matchesSearch && matchesFilters;
     });
-  }, [db, searchTerm, filter, user, isAdmin]);
+
+    return filtered.sort((a: Trip, b: Trip) => {
+      if (sortBy === 'date_desc') {
+        return new Date(b.date).getTime() - new Date(a.date).getTime();
+      }
+      if (sortBy === 'date_asc') {
+        return new Date(a.date).getTime() - new Date(b.date).getTime();
+      }
+      if (sortBy === 'nf_asc') {
+        return String(a.invoiceNumber).localeCompare(String(b.invoiceNumber), undefined, { numeric: true });
+      }
+      if (sortBy === 'nf_desc') {
+        return String(b.invoiceNumber).localeCompare(String(a.invoiceNumber), undefined, { numeric: true });
+      }
+      return 0;
+    });
+  }, [db, searchTerm, filter, user, isAdmin, sortBy]);
 
   return (
     <div className="space-y-6 animate-in fade-in duration-500 pb-10">
@@ -144,6 +161,19 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
               onChange={e => setFilter(prev => ({ ...prev, date: e.target.value }))}
               className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-black uppercase outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
             />
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Ordenar por</label>
+            <select
+              value={sortBy}
+              onChange={e => setSortBy(e.target.value)}
+              className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-black uppercase outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+            >
+              <option value="date_desc">Data (Mais Recente)</option>
+              <option value="date_asc">Data (Mais Antiga)</option>
+              <option value="nf_asc">NF (Crescente)</option>
+              <option value="nf_desc">NF (Decrescente)</option>
+            </select>
           </div>
         </div>
       </div>
