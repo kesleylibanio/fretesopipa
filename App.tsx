@@ -22,6 +22,7 @@ import {
 } from 'lucide-react';
 import { ViewState, Trip, UserSession } from './types';
 import { fetchDB, pushDB, INITIAL_DB, DB, getLocalDB } from './db';
+import { formatDateToBR } from './dateUtils';
 import Dashboard from './components/Dashboard';
 import NewTripForm from './components/NewTripForm';
 import BatchTripForm from './components/BatchTripForm';
@@ -53,7 +54,7 @@ const App: React.FC = () => {
 
   // Estados de rascunho para persistência entre navegação
   const [draftTrip, setDraftTrip] = useState<any>({
-    date: new Date().toISOString().split('T')[0],
+    date: formatDateToBR(new Date().toISOString().split('T')[0]),
     invoiceNumber: '',
     customerId: '',
     driverId: '',
@@ -78,7 +79,7 @@ const App: React.FC = () => {
   });
 
   const [draftBatchItems, setDraftBatchItems] = useState<any[]>([
-    { id: Math.random().toString(), date: new Date().toISOString().split('T')[0], invoiceNumber: '', qtyTons: 0 }
+    { id: Math.random().toString(), date: formatDateToBR(new Date().toISOString().split('T')[0]), invoiceNumber: '', qtyTons: 0 }
   ]);
 
   useEffect(() => {
@@ -387,7 +388,7 @@ const App: React.FC = () => {
                     }));
                     setEditingTrip(null);
                     setDraftTrip({
-                      date: new Date().toISOString().split('T')[0],
+                      date: formatDateToBR(new Date().toISOString().split('T')[0]),
                       invoiceNumber: '',
                       customerId: '',
                       driverId: '',
@@ -428,7 +429,7 @@ const App: React.FC = () => {
                       pricePerTon: 0
                     });
                     setDraftBatchItems([
-                      { id: Math.random().toString(), date: new Date().toISOString().split('T')[0], invoiceNumber: '', qtyTons: 0 }
+                      { id: Math.random().toString(), date: formatDateToBR(new Date().toISOString().split('T')[0]), invoiceNumber: '', qtyTons: 0 }
                     ]);
                     navigate('history');
                   }}

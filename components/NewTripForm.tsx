@@ -3,6 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Save, X, Info, Calculator, Calendar, Truck, Camera, Sparkles, Loader2, CheckCircle2, Image as ImageIcon, RefreshCcw, Eye, Trash2, AlertCircle } from 'lucide-react';
 import { Trip, FreightRate, UserSession } from '../types';
 import { generateId } from '../db';
+import { formatDateToBR, formatDateToISO } from '../dateUtils';
 import { SearchableSelect } from './SearchableSelect';
 import { GoogleGenAI } from "@google/genai";
 
@@ -203,7 +204,7 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, draftD
       setFormData(prev => ({
         ...prev,
         invoiceNumber: extractedData.numero_nota || prev.invoiceNumber,
-        date: extractedData.data_emissao || prev.date,
+        date: formatDateToBR(extractedData.data_emissao) || prev.date,
         qtyTons: extractedData.peso_liquido_toneladas ? Number(extractedData.peso_liquido_toneladas) : prev.qtyTons,
       }));
     }
@@ -288,7 +289,15 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, draftD
             )}
             
             <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5"><label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Data</label><input type="date" value={formData.date} onChange={e => setFormData(p => ({ ...p, date: e.target.value }))} className={inputClass()} /></div>
+              <div className="space-y-1.5">
+                <label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Data</label>
+                <input 
+                  type="date" 
+                  value={formatDateToISO(formData.date)} 
+                  onChange={e => setFormData(p => ({ ...p, date: formatDateToBR(e.target.value) }))} 
+                  className={inputClass()} 
+                />
+              </div>
               <div className="space-y-1.5"><label className="block text-xs font-black text-slate-400 uppercase tracking-widest">Nota Fiscal</label><input type="text" placeholder="000.000" value={formData.invoiceNumber} onChange={e => setFormData(p => ({ ...p, invoiceNumber: e.target.value }))} className={inputClass()} /></div>
             </div>
 
@@ -421,7 +430,15 @@ const NewTripForm: React.FC<NewTripFormProps> = ({ db, user, initialData, draftD
             </div>
             <div className="space-y-4 bg-slate-50 p-6 rounded-3xl mb-8">
               <div className="flex justify-between items-center pb-3 border-b border-slate-200"><span className="text-xs font-black uppercase text-slate-400">Nota</span><input type="text" className="font-bold text-right bg-transparent outline-none" value={extractedData?.numero_nota || ''} onChange={e => setExtractedData({...extractedData, numero_nota: e.target.value})} /></div>
-              <div className="flex justify-between items-center pb-3 border-b border-slate-200"><span className="text-xs font-black uppercase text-slate-400">Data</span><input type="date" className="font-bold text-right bg-transparent outline-none" value={extractedData?.data_emissao || ''} onChange={e => setExtractedData({...extractedData, data_emissao: e.target.value})} /></div>
+              <div className="flex justify-between items-center pb-3 border-b border-slate-200">
+                <span className="text-xs font-black uppercase text-slate-400">Data</span>
+                <input 
+                  type="date" 
+                  className="font-bold text-right bg-transparent outline-none" 
+                  value={formatDateToISO(formatDateToBR(extractedData?.data_emissao))} 
+                  onChange={e => setExtractedData({...extractedData, data_emissao: formatDateToBR(e.target.value)})} 
+                />
+              </div>
               <div className="flex justify-between items-center"><span className="text-xs font-black uppercase text-slate-400">Peso (t)</span><input type="number" step="0.001" className="font-bold text-right bg-transparent outline-none" value={extractedData?.peso_liquido_toneladas || ''} onChange={e => setExtractedData({...extractedData, peso_liquido_toneladas: e.target.value})} /></div>
             </div>
             <div className="grid grid-cols-2 gap-3">

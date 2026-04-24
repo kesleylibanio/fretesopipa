@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Save, X, Plus, Trash2, Info, Truck, Calculator, Loader2, CheckCircle2 } from 'lucide-react';
 import { Trip, FreightRate, UserSession } from '../types';
 import { generateId } from '../db';
+import { formatDateToBR, formatDateToISO } from '../dateUtils';
 import { SearchableSelect } from './SearchableSelect';
 
 interface BatchTripFormProps {
@@ -51,7 +52,7 @@ const BatchTripForm: React.FC<BatchTripFormProps> = ({
   }, [fixedData.originId, fixedData.destinationId, db.freightRates]);
 
   const addItem = () => {
-    const lastDate = items.length > 0 ? items[items.length - 1].date : new Date().toISOString().split('T')[0];
+    const lastDate = items.length > 0 ? items[items.length - 1].date : formatDateToBR(new Date().toISOString().split('T')[0]);
     setItems([...items, { id: Math.random().toString(), date: lastDate, invoiceNumber: '', qtyTons: 0 }]);
   };
 
@@ -227,8 +228,8 @@ const BatchTripForm: React.FC<BatchTripFormProps> = ({
                   {index === 0 && <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest">Data</label>}
                   <input 
                     type="date" 
-                    value={item.date} 
-                    onChange={e => updateItem(item.id, 'date', e.target.value)} 
+                    value={formatDateToISO(item.date)} 
+                    onChange={e => updateItem(item.id, 'date', formatDateToBR(e.target.value))} 
                     className={inputClass()} 
                   />
                 </div>

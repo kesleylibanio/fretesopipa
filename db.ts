@@ -2,6 +2,7 @@
 import { 
   Customer, Driver, Vehicle, Location, Material, FreightRate, Trip, Login 
 } from './types';
+import { formatDateToBR } from './dateUtils';
 
 const API_URL = 'https://script.google.com/macros/s/AKfycbzk7E2yRlmtn2oz9GZWoLAsv2wCW47KKRkKA6OhGHUydzqhss_F39D9k9f7cpbxvpiJ/exec';
 const SECURITY_TOKEN = 'LOGITRANS_SECRET_2025';
@@ -74,12 +75,8 @@ const mapToSheet = (data: any[], type: string, db?: DB) => {
       const destName = db?.locations.find(l => l.id === t.destinationId)?.name || t.destinationId;
       const materialName = db?.materials.find(m => m.id === t.materialId)?.name || t.materialId;
 
-      // Format date to DD/MM/YYYY for sheet
-      let formattedDate = t.date;
-      if (t.date && t.date.includes('-')) {
-        const [y, m, d] = t.date.split('-');
-        formattedDate = `${d}/${m}/${y}`;
-      }
+      // Ensure date is always BR format
+      const formattedDate = formatDateToBR(t.date);
 
       return {
         id: String(t.id),
@@ -132,16 +129,12 @@ const mapFromSheet = (data: any[], type: string) => {
   
   if (type === 'trips') {
     return data.map((t: any) => {
-      // Parse date from DD/MM/YYYY to YYYY-MM-DD for app
-      let parsedDate = String(t.data || '');
-      if (parsedDate && parsedDate.includes('/')) {
-        const [d, m, y] = parsedDate.split('/');
-        parsedDate = `${y}-${m}-${d}`;
-      }
+      // Normalize date from sheet to DD/MM/AAAA
+      const normalizedDate = formatDateToBR(t.data);
 
       return {
         id: String(t.id || ''),
-        date: parsedDate,
+        date: normalizedDate,
         invoiceNumber: String(t.nota_fiscal || ''),
       customerId: String(t.cliente_id || ''),
       driverId: String(t.motorista_id || ''),

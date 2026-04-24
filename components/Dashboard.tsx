@@ -34,7 +34,7 @@ const Dashboard: React.FC<DashboardProps> = ({ navigate, db, onSearch, user }) =
   // Estatísticas adaptadas para Admin ou Motorista
   const stats = [
     { 
-      label: isAdmin ? 'Viagens no Mês' : 'Minhas Viagens', 
+      label: isAdmin ? 'Viagens Totais' : 'Minhas Viagens', 
       value: trips.length, 
       icon: TrendingUp, 
       color: 'text-red-600', 

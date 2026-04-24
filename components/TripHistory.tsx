@@ -2,6 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import { Search, Filter, Trash2, Edit2, Download, Calendar, Truck, User, MapPin, History, ImageIcon, X, Eye, Image as ImageIconLucide } from 'lucide-react';
 import { Trip, UserSession } from '../types';
+import { formatDateToBR, formatDateToISO } from '../dateUtils';
 import { SearchableSelect } from './SearchableSelect';
 
 interface TripHistoryProps {
@@ -71,10 +72,10 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
 
     return filtered.sort((a: Trip, b: Trip) => {
       if (sortBy === 'date_desc') {
-        return new Date(b.date).getTime() - new Date(a.date).getTime();
+        return formatDateToISO(b.date).localeCompare(formatDateToISO(a.date));
       }
       if (sortBy === 'date_asc') {
-        return new Date(a.date).getTime() - new Date(b.date).getTime();
+        return formatDateToISO(a.date).localeCompare(formatDateToISO(b.date));
       }
       if (sortBy === 'nf_asc') {
         return String(a.invoiceNumber).localeCompare(String(b.invoiceNumber), undefined, { numeric: true });
@@ -157,8 +158,8 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
             <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Data</label>
             <input 
               type="date"
-              value={filter.date}
-              onChange={e => setFilter(prev => ({ ...prev, date: e.target.value }))}
+              value={formatDateToISO(filter.date)}
+              onChange={e => setFilter(prev => ({ ...prev, date: formatDateToBR(e.target.value) }))}
               className="w-full px-5 py-4 rounded-xl border border-slate-200 bg-white text-slate-900 text-sm font-black uppercase outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
             />
           </div>
@@ -200,7 +201,7 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
                     <div className="flex justify-between items-start">
                       <div>
                         <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Data / NF</span>
-                        <p className="font-black text-slate-900 text-lg">{new Date(trip.date).toLocaleDateString('pt-BR')}</p>
+                        <p className="font-black text-slate-900 text-lg">{trip.date}</p>
                         <p className="text-xs text-slate-500 font-mono font-bold">NF {trip.invoiceNumber}</p>
                       </div>
                       <div className="text-right">
@@ -288,7 +289,7 @@ const TripHistory: React.FC<TripHistoryProps> = ({ db, user, initialSearch, onEd
                       <tr key={trip.id} className="hover:bg-red-50/30 transition-colors group">
                         <td className="px-8 py-6">
                           <div className="flex flex-col">
-                            <span className="font-black text-slate-900 text-base">{new Date(trip.date).toLocaleDateString('pt-BR')}</span>
+                            <span className="font-black text-slate-900 text-base">{trip.date}</span>
                             <div className="flex items-center space-x-2 mt-1">
                               <span className="text-xs text-slate-400 font-mono font-bold">NF {trip.invoiceNumber}</span>
                               {trip.invoiceImageUrl && (
